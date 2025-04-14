@@ -1,2 +1,2 @@
 export { envs } from './envs';
-export { PRODUCT_SERVICE } from './services';
+export { PRODUCT_SERVICE, NATS_SERVICE } from './services';

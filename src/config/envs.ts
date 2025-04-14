@@ -4,20 +4,21 @@ import * as joi from 'joi';
 interface EnvVars {
   PORT: number;
   DATABASE_URL: string;
-  PRODUCTS_MICROSERVICE_HOST: string;
-  PRODUCTS_MICROSERVICE_PORT: number;
+  NATS_SERVERS: string[];
 }
 
 const envsSchema = joi
   .object({
     PORT: joi.number().required(),
     DATABASE_URL: joi.string().required(),
-    PRODUCTS_MICROSERVICE_HOST: joi.string().required(),
-    PRODUCTS_MICROSERVICE_PORT: joi.number().required(),
+    NATS_SERVERS: joi.array().items(joi.string()).required(),
   })
   .unknown(true);
 
-const validationSchema = envsSchema.validate(process.env);
+const validationSchema = envsSchema.validate({
+  ...process.env,
+  NATS_SERVERS: process.env.NATS_SERVERS?.split(','),
+});
 const error: joi.ValidationError | undefined = validationSchema.error;
 const value: EnvVars = validationSchema.value as EnvVars;
 if (error) {
@@ -29,6 +30,5 @@ const envVars: EnvVars = value;
 export const envs = {
   port: envVars.PORT,
   database_url: envVars.DATABASE_URL,
-  products_microservice_port: envVars.PRODUCTS_MICROSERVICE_PORT,
-  products_microservice_host: envVars.PRODUCTS_MICROSERVICE_HOST,
+  nats_servers: envVars.NATS_SERVERS,
 };

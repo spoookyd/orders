@@ -10,7 +10,7 @@ import { PrismaClient } from 'generated/prisma';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { OrderPaginationDto } from './dto';
 import { StatusDto } from './dto/status-dto';
-import { PRODUCT_SERVICE } from 'src/config';
+import { NATS_SERVICE } from 'src/config';
 import { firstValueFrom } from 'rxjs';
 import { Product } from './interfaces/product.interface';
 
@@ -18,9 +18,7 @@ import { Product } from './interfaces/product.interface';
 export class OrdersService extends PrismaClient implements OnModuleInit {
   private readonly logger = new Logger('OrdersService');
 
-  constructor(
-    @Inject(PRODUCT_SERVICE) private readonly productsClient: ClientProxy,
-  ) {
+  constructor(@Inject(NATS_SERVICE) private readonly client: ClientProxy) {
     super();
   }
 
@@ -32,12 +30,12 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
   async create(createOrderDto: CreateOrderDto) {
     const ids = createOrderDto.items.map((order) => order.productId);
     try {
-      const product = await firstValueFrom<Product[]>(
-        this.productsClient.send({ cmd: 'validate_product' }, ids),
+      const product = await firstValueFrom<{ data: Product[] }>(
+        this.client.send({ cmd: 'validate_product' }, ids),
       );
 
       const totalAmount: number = createOrderDto.items.reduce((total, curr) => {
-        const foundProduct = product.find(
+        const foundProduct = product.data.find(
           (product) => product.id === curr.productId,
         );
         if (!foundProduct) {
@@ -55,7 +53,9 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
       }, 0);
 
       const ProductWithPrice = createOrderDto.items.map((curr) => {
-        const findProduct = product.find((item) => item.id === curr.productId);
+        const findProduct = product.data.find(
+          (item) => item.id === curr.productId,
+        );
 
         if (!findProduct) {
           throw new RpcException({
@@ -98,7 +98,7 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
       return {
         ...order,
         OrderItem: order.OrderItem.map((item) => ({
-          name: product.find(
+          name: product.data.find(
             (singleProduct) => singleProduct.id === item.productId,
           )?.name,
           ...item,
@@ -158,14 +158,13 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
 
       // 3.- llamamos a microservice product
 
-      const product = await firstValueFrom<Product[]>(
-        this.productsClient.send({ cmd: 'validate_product' }, itemsId),
+      const product = await firstValueFrom<{ data: Product[] }>(
+        this.client.send({ cmd: 'validate_product' }, itemsId),
       );
-
       return {
         ...order,
         OrderItem: order.OrderItem.map((item) => ({
-          name: product.find(
+          name: product.data.find(
             (singleProduct) => singleProduct.id === item.productId,
           )?.name,
           ...item,
