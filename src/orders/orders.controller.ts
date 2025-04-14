@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, ParseUUIDPipe } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -28,4 +28,9 @@ export class OrdersController {
   changeOrderStatus(@Payload() statusDto: StatusDto) {
     return this.ordersService.changeOrderStatus(statusDto);
   }
+
+  // @MessagePattern('validate_product')
+  // validateProducts(@Payload() produ){
+  //   return this.ordersService.validateProducts()
+  // }
 }
